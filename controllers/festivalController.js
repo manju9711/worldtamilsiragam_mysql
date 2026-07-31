@@ -203,14 +203,19 @@ const updateItem = async (req, res) => {
                 }));
             };
 
+              // Retrieve the existing item to merge the new data with the old data
+            const existingItem = await FestivalModel.findOne({ where: { id: req.params.id } });
+
             let updateData = {
                 ...req.body,
                 isDisabled: req.body.isDisabled,
-                image: req.files['image'] ? processFiles(req.files['image'])[0] : undefined,
+                // image: req.files['image'] ? processFiles(req.files['image'])[0] : undefined,
+                image: req.files['image']
+    ? req.files['image'][0].filename
+    : existingItem.image,
             };
 
-            // Retrieve the existing item to merge the new data with the old data
-            const existingItem = await FestivalModel.findOne({ where: { id: req.params.id } });
+          
 
             if (!existingItem) {
                 return res.status(STATUS_CODES.NOT_FOUND).json({
@@ -226,7 +231,8 @@ const updateItem = async (req, res) => {
 
                 // Filter out images that are not in the keep list
                 updateData.gallery_images = existingItem.gallery_images.filter(img =>
-                    existingImagesToKeep.includes(img.id)
+                    // existingImagesToKeep.includes(img.id)
+                    existingImagesToKeep.includes(img)
                 );
             } else {
                 updateData.gallery_images = existingItem.gallery_images; // Retain all existing images if no instructions provided
@@ -234,7 +240,8 @@ const updateItem = async (req, res) => {
 
             // Append new images if provided in the request
             if (req.files['gallery_images']) {
-                const newImages = processFiles(req.files['gallery_images']);
+                // const newImages = processFiles(req.files['gallery_images']);
+                const newImages = req.files['gallery_images'].map(file => file.filename);
                 updateData.gallery_images = [...updateData.gallery_images, ...newImages];
             }
 
@@ -244,7 +251,8 @@ const updateItem = async (req, res) => {
 
                 // Filter out videos that are not in the keep list
                 updateData.video = existingItem.video.filter(vid =>
-                    existingVideosToKeep.includes(vid.id)
+                    // existingVideosToKeep.includes(vid.id)
+                    existingVideosToKeep.includes(vid)
                 );
             } else {
                 updateData.video = existingItem.video; // Retain all existing videos if no instructions provided
@@ -252,7 +260,8 @@ const updateItem = async (req, res) => {
 
             // Append new videos if provided in the request
             if (req.files['video']) {
-                const newVideos = processFiles(req.files['video']);
+                // const newVideos = processFiles(req.files['video']);
+                const newVideos = req.files['video'].map(file => file.filename);
                 updateData.video = [...updateData.video, ...newVideos];
             }
 
