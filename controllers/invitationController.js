@@ -77,7 +77,11 @@ const createItem = async (req, res) => {
 const getAllCmsItems = async (req, res) => {
   try {
     const items = await InvitationModel.findAll({
-      attributes: ['id', 'title_en', 'title_ta', 'description_en', 'description_ta', 'date_en', 'date_ta','location_en', 'location_ta', 'sub_description_en', 'sub_description_ta', 'image', 'file','isDisabled']
+      attributes: ['id', 'title_en', 'title_ta', 'description_en', 'description_ta', 'date_en', 'date_ta','location_en', 'location_ta', 'sub_description_en', 'sub_description_ta', 'image', 'file','isDisabled'],
+      order: [
+    ['date_en', 'DESC'],
+    ['id', 'DESC']
+  ]
     });
     logger.info('Retrieved all CMS items');
     res.status(STATUS_CODES.SUCCESS).json({ code: STATUS_CODES.SUCCESS, message: ENGLISH_MESSAGE.GET_SUCC, data: items, status: 'success' });
@@ -94,7 +98,13 @@ const getAllItems = async (req, res) => {
       ? ['id', 'title_ta', 'description_ta', 'date_ta',  'location_ta', 'sub_description_ta', 'image', 'file','isDisabled']
       : ['id', 'title_en', 'description_en', 'date_en',  'location_en', 'sub_description_en', 'image', 'file','isDisabled'];
 
-    const invitations = await InvitationModel.findAll({ attributes });
+    const invitations = await InvitationModel.findAll({ 
+      attributes,
+       order: [
+    ['date_en', 'DESC'],
+    ['id', 'DESC']
+  ]
+     });
 
     logger.info('Retrieved all invitations');
     return res.status(STATUS_CODES.SUCCESS).send({
