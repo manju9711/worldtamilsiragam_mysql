@@ -1,7 +1,7 @@
 const VisionModel = require('../models/visionSchema.js');
 const logger = require('../logger');
 const { TAMIL_MESSAGE, ENGLISH_MESSAGE, STATUS_CODES, FILE_UPLOAD } = require("../util/constant.js");
-const upload = require('../middleware/upload');
+const upload = require('../middleware/uploadToS3');
 
 // Create a new item
 const createItem = async (req, res) => {
@@ -18,7 +18,7 @@ const createItem = async (req, res) => {
     try {
       const newItem = new VisionModel({
         ...req.body,
-        image: req.files.image ? req.files.image[0].filename : undefined
+        image: req.files.image ? req.files.image[0].location : undefined
       });
       await newItem.save();
       logger.info('Item created', { item: newItem });
@@ -208,7 +208,7 @@ const updateItem = async (req, res) => {
     try {
       const updateData = { ...req.body };
       if (req.files?.image) {
-        updateData.image = req.files.image[0].filename; // Update filename if a new image is uploaded
+        updateData.image = req.files.image[0].location; // Update filename if a new image is uploaded
       }
 
       const item = await VisionModel.findByIdAndUpdate(

@@ -1,7 +1,7 @@
 const FestivalModel = require('../models/festivalSchema.js');
 const logger = require('../logger');
 const { TAMIL_MESSAGE, ENGLISH_MESSAGE, STATUS_CODES, FILE_UPLOAD } = require("../util/constant.js");
-const upload = require('../middleware/upload');
+const upload = require('../middleware/uploadToS3');
 
 // Create a new item
 const createItem = async (req, res) => {
@@ -31,9 +31,9 @@ const createItem = async (req, res) => {
         const date_ta = parseDate(req.body.date_ta);
   
         // Extract file names from uploaded files
-        const image = req.files?.image ? req.files.image[0].filename : null;
-        const gallery_images = req.files?.gallery_images ? req.files.gallery_images.map(file => file.filename) : [];
-        const video = req.files?.video ? req.files.video.map(file => file.filename) : [];
+        const image = req.files?.image ? req.files.image[0].location : null;
+        const gallery_images = req.files?.gallery_images ? req.files.gallery_images.map(file => file.location) : [];
+        const video = req.files?.video ? req.files.video.map(file => file.location) : [];
   
         const newFestival = await FestivalModel.create({
           title_en, title_ta, description_en, description_ta,
@@ -211,7 +211,7 @@ const updateItem = async (req, res) => {
                 isDisabled: req.body.isDisabled,
                 // image: req.files['image'] ? processFiles(req.files['image'])[0] : undefined,
                 image: req.files['image']
-    ? req.files['image'][0].filename
+    ? req.files['image'][0].location
     : existingItem.image,
             };
 
@@ -241,7 +241,7 @@ const updateItem = async (req, res) => {
             // Append new images if provided in the request
             if (req.files['gallery_images']) {
                 // const newImages = processFiles(req.files['gallery_images']);
-                const newImages = req.files['gallery_images'].map(file => file.filename);
+                const newImages = req.files['gallery_images'].map(file => file.location);
                 updateData.gallery_images = [...updateData.gallery_images, ...newImages];
             }
 
@@ -261,7 +261,7 @@ const updateItem = async (req, res) => {
             // Append new videos if provided in the request
             if (req.files['video']) {
                 // const newVideos = processFiles(req.files['video']);
-                const newVideos = req.files['video'].map(file => file.filename);
+                const newVideos = req.files['video'].map(file => file.location);
                 updateData.video = [...updateData.video, ...newVideos];
             }
 

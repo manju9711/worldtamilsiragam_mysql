@@ -1,7 +1,7 @@
 const TracksModel = require('../models/tracksSchema');
 const logger = require('../logger');
 const { TAMIL_MESSAGE, ENGLISH_MESSAGE, STATUS_CODES, FILE_UPLOAD } = require("../util/constant");
-const upload = require('../middleware/upload');
+const upload = require('../middleware/uploadToS3');
 
 // Create a new track
 const createTrack = async (req, res) => {
@@ -25,7 +25,7 @@ const createTrack = async (req, res) => {
                     id: `${file.fieldname}-${Date.now()}-${index}`,
                     fileName: file.originalname,
                     fileType: file.mimetype,
-                    filePath: file.path,
+                    filePath: file.location,
                     fileSize: file.size
                 }));
             };
@@ -211,7 +211,7 @@ const updateTrack = async (req, res) => {
             id: `${file.fieldname}-${Date.now()}-${index}`,
             fileName: file.originalname,
             fileType: file.mimetype,
-            filePath: file.path,
+            filePath: file.location,
             fileSize: file.size
           }));
         };

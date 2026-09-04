@@ -2,7 +2,7 @@
 const StructureModel = require('../models/structureSchema.js');
 const logger = require('../logger');
 const { TAMIL_MESSAGE, ENGLISH_MESSAGE, STATUS_CODES, FILE_UPLOAD, TeamTypeEnum } = require("../util/constant.js");
-const upload = require('../middleware/upload');
+const upload = require('../middleware/uploadToS3');
 
 // Create a new item
 const createItem = async (req, res) => {
@@ -28,7 +28,7 @@ const createItem = async (req, res) => {
         });
       }
 
-      const image = req.files?.image ? req.files.image[0].filename : null // Handle image upload
+      const image = req.files?.image ? req.files.image[0].location : null // Handle image upload
 
       const newItem = await StructureModel.create({
         ...req.body,
@@ -159,7 +159,7 @@ const updateItem = async (req, res) => {
 
       // Handle image update
       if (req.files?.image) {
-        updateData.image = req.files.image[0].filename; // New image uploaded
+        updateData.image = req.files.image[0].location; // New image uploaded
       } else if (req.body.removeImage === "true") {
         updateData.image = null; // Remove image explicitly
       }

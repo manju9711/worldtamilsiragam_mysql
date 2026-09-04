@@ -1,7 +1,7 @@
 const InvitationModel = require('../models/invitationSchema.js');
 const logger = require('../logger');
 const { STATUS_CODES, FILE_UPLOAD, TAMIL_MESSAGE, ENGLISH_MESSAGE } = require('../util/constant.js');
-const upload = require('../middleware/upload');
+const upload = require('../middleware/uploadToS3');
 
 // Create Invitation
 const createItem = async (req, res) => {
@@ -17,8 +17,8 @@ const createItem = async (req, res) => {
 
     try {
       const { title_en, title_ta, description_en, description_ta, location_en, location_ta, sub_description_en, sub_description_ta, isDisabled } = req.body;
-      const image = req.files?.image ? req.files.image[0].filename : null;
-      const file = req.files?.file ? req.files.file[0].filename : null;
+      const image = req.files?.image ? req.files.image[0].location : null;
+      const file = req.files?.file ? req.files.file[0].location : null;
 
       // Function to validate date
       const isValidDate = (date) => {
@@ -174,7 +174,7 @@ const updateItem = async (req, res) => {
       const updateData = { ...req.body };
 
       if (req.files?.image) {
-        updateData.image = req.files.image[0].filename; // New image uploaded
+        updateData.image = req.files.image[0].location; // New image uploaded
       } else if (req.body.removeImage === "true") {
         updateData.image = null; // Remove image
       }

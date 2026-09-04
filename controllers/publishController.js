@@ -2,7 +2,7 @@
 const PublishModel = require('../models/publishSchema.js'); // Adjust the path to your Publish model
 const logger = require('../logger');
 const { TAMIL_MESSAGE, ENGLISH_MESSAGE, STATUS_CODES, FILE_UPLOAD } = require("../util/constant.js");
-const upload = require('../middleware/upload');
+const upload = require('../middleware/uploadToS3');
 
 // Create a new publish entry
 const createPublish = async (req, res) => {
@@ -18,8 +18,8 @@ const createPublish = async (req, res) => {
 
     try {
       const { title_en, title_ta, isDisabled } = req.body;
-      const file = req.files?.file ? req.files.file[0].filename : null;
-      const image = req.files?.image ? req.files.image[0].filename : null;
+      const file = req.files?.file ? req.files.file[0].location : null;
+      const image = req.files?.image ? req.files.image[0].location : null;
 
       const publishItem = await PublishModel.create({ title_en, title_ta, file, image, isDisabled });
 
@@ -170,10 +170,10 @@ const updatePublish = async (req, res) => {
 
       // Check if files are being uploaded and update the fields
       if (req.files?.file) {
-        updateData.file = req.files.file[0].filename;
+        updateData.file = req.files.file[0].location;
       }
       if (req.files?.image) {
-        updateData.image = req.files.image[0].filename; // Add image field for update
+        updateData.image = req.files.image[0].location; // Add image field for update
       }
 
       // Perform the update operation

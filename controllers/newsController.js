@@ -2,7 +2,7 @@
 const News = require('../models/newsSchema.js');
 const logger = require('../logger');
 const { TAMIL_MESSAGE, ENGLISH_MESSAGE, STATUS_CODES, FILE_UPLOAD } = require("../util/constant.js");
-const upload = require('../middleware/upload');
+const upload = require('../middleware/uploadToS3');
 
 // Create a new item
 const createItem = async (req, res) => {
@@ -18,8 +18,7 @@ const createItem = async (req, res) => {
 
     try {
       const { title_en, title_ta, description_en, description_ta, isDisabled } = req.body;
-      // const image =req.files?.image ? req.files.image[0].filename : null
-      const image = req.files?.image ? req.files.image[0].filename : existingItem?.image;
+      const image = req.files?.image ? req.files.image[0].location : null;
 
 
       const newsItem = await News.create({ title_en, title_ta, description_en, description_ta, image, isDisabled });
@@ -94,7 +93,7 @@ const updateItem = async (req, res) => {
     }
     try {
       const { title_en, title_ta, description_en, description_ta, isDisabled } = req.body;
-      const image =req.files?.image ? req.files.image[0].filename : null
+      const image = req.files?.image ? req.files.image[0].location : null;
       const updated = await News.update({ title_en, title_ta, description_en, description_ta, image, isDisabled }, { where: { id: req.params.id } });
       if (!updated[0]) {
         return res.status(STATUS_CODES.NOT_FOUND).json({ code: STATUS_CODES.NOT_FOUND, message: ENGLISH_MESSAGE.UPDATE_FAIL, status: "error" });
