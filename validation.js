@@ -26,14 +26,14 @@ const membershipValidation = (data) => {
     const schema = Joi.object({
         fullName: Joi.string().min(3).required(),
         address: Joi.string().required(),
-        dateOfBirth: Joi.date().iso().required(),
+        dateOfBirth: Joi.date().required(),
         gender: Joi.string().valid("Male", "Female", "Other").required(),
-        phone: Joi.string().pattern(/^\d{10,15}$/).required(), 
+        phone: Joi.string().pattern(/^\+?\d{10,15}$/).required(), 
         email: Joi.string().email().required(),
         password: Joi.string().min(6).required(),
         confirmPassword: Joi.string().valid(Joi.ref("password")).required(),
         membershipType: Joi.string().required(),
-        additionalInfo: Joi.string().allow(""),
+        additionalInfo: Joi.string().allow("").optional(),
         isDisabled: Joi.boolean().optional()
     });
 

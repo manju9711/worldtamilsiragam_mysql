@@ -551,29 +551,30 @@ const registerMembership = async (req, res) => {
 
     const { fullName, address, dateOfBirth, gender, phone, email, password, confirmPassword, membershipType, additionalInfo, isDisabled } = req.body;
 
-    const transaction = await sequelize.transaction(); // Start transaction
+    // Check if the email already exists before starting transaction
+    const existingMembership = await Membership.findOne({ where: { email } });
+    if (existingMembership) {
+        logger.warn('Registration attempt with existing email', { email });
+        return res.status(STATUS_CODES.BAD_REQUEST).send({
+            code: STATUS_CODES.BAD_REQUEST,
+            message: 'This email is already registered. Please login or use a different email.',
+            status: "error"
+        });
+    }
 
+    // Check if passwords match
+    if (password !== confirmPassword) {
+        logger.warn('Password mismatch', { email });
+        return res.status(STATUS_CODES.BAD_REQUEST).send({
+            code: STATUS_CODES.BAD_REQUEST,
+            message: 'Passwords do not match',
+            status: "error"
+        });
+    }
+
+    let transaction;
     try {
-        // Check if the email already exists
-        const existingMembership = await Membership.findOne({ where: { email } });
-        if (existingMembership) {
-            logger.warn('Registration attempt with existing email', { email });
-            return res.status(STATUS_CODES.BAD_REQUEST).send({
-                code: STATUS_CODES.BAD_REQUEST,
-                message: ENGLISH_MESSAGE.CREATE_FAIL,
-                status: "error"
-            });
-        }
-
-        // Check if passwords match
-        if (password !== confirmPassword) {
-            logger.warn('Password mismatch', { email });
-            return res.status(STATUS_CODES.BAD_REQUEST).send({
-                code: STATUS_CODES.BAD_REQUEST,
-                message: 'Passwords do not match',
-                status: "error"
-            });
-        }
+        transaction = await sequelize.transaction();
 
         // Hash the password before saving
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -588,61 +589,66 @@ const registerMembership = async (req, res) => {
             email,
             password: hashedPassword, // Store only hashed password
             membershipType,
-            additionalInfo,
+            additionalInfo: additionalInfo || '',
             isDisabled: isDisabled || false
         }, { transaction });
 
-        await transaction.commit(); // Commit transaction
-
-        const adminMailOptions = {
-            from: process.env.GMAIL_USER,
-            to: "tamilsiragam@gmail.com",
-            subject: 'A membership registration request is awaiting your approval.',
-            html: `
-                <div style="font-family: Arial, sans-serif; line-height: 1.5em; color: #333;">
-                    <p>Dear Admin,</p>
-                    <p>A user has submitted a membership registration request. Please review and approve the request.</p>
-                    <p>Details:</p>
-                    <ul>
-                        <li><strong>Name:</strong> ${fullName}</li>
-                        <li><strong>Email:</strong> ${email}</li>
-                        <li><strong>Phone:</strong> ${phone}</li>
-                        <li><strong>Date of Birth:</strong> ${new Date(dateOfBirth).toLocaleDateString()}</li>
-                        <li><strong>Gender:</strong> ${gender}</li>
-                        <li><strong>Address:</strong> ${address}</li>
-                        <li><strong>Membership Type:</strong> ${membershipType}</li>
-                        <li><strong>Additional Info:</strong> ${additionalInfo || 'N/A'}</li>
-                    </ul>
-                    <p>Manage requests through the 
-                        <a href="https://worldtamilsiragam.com/cms" target="_blank">Membership Portal</a>.
-                    </p>
-                    <p>Regards,<br><strong>World Tamil Siragam</strong></p>
-                </div>
-            `
-        };
-
-        const userMailOptions = {
-            from: process.env.GMAIL_USER,
-            to: email,
-            subject: 'Membership registration request is awaiting admin approval.',
-            html: `
-                <div style="font-family: Arial, sans-serif; line-height: 1.5em; color: #333;">
-                    <p>Dear User,</p>
-                    <p>Thank you for your interest in World Tamil Siragam. Your membership registration request has been received. 
-                    Please wait for admin approval.</p>
-                    <p>Please visit our website and contact one of our administrators for any questions.</p>
-                    <p>Regards,<br><strong>World Tamil Siragam</strong></p>
-                    <a href="https://worldtamilsiragam.com" target="_blank">https://worldtamilsiragam.com</a>
-                </div>
-            `
-        };
-
-        await transporter.sendMail(adminMailOptions);
-        await transporter.sendMail(userMailOptions);
+        await transaction.commit();
 
         logger.info('Membership registered successfully', { membershipId: newMembership.id });
 
-        res.status(STATUS_CODES.SUCCESS).send({
+        // Send email notifications asynchronously without blocking or failing registration
+        try {
+            const adminMailOptions = {
+                from: process.env.GMAIL_USER,
+                to: "tamilsiragam@gmail.com",
+                subject: 'A membership registration request is awaiting your approval.',
+                html: `
+                    <div style="font-family: Arial, sans-serif; line-height: 1.5em; color: #333;">
+                        <p>Dear Admin,</p>
+                        <p>A user has submitted a membership registration request. Please review and approve the request.</p>
+                        <p>Details:</p>
+                        <ul>
+                            <li><strong>Name:</strong> ${fullName}</li>
+                            <li><strong>Email:</strong> ${email}</li>
+                            <li><strong>Phone:</strong> ${phone}</li>
+                            <li><strong>Date of Birth:</strong> ${new Date(dateOfBirth).toLocaleDateString()}</li>
+                            <li><strong>Gender:</strong> ${gender}</li>
+                            <li><strong>Address:</strong> ${address}</li>
+                            <li><strong>Membership Type:</strong> ${membershipType}</li>
+                            <li><strong>Additional Info:</strong> ${additionalInfo || 'N/A'}</li>
+                        </ul>
+                        <p>Manage requests through the 
+                            <a href="https://worldtamilsiragam.com/cms" target="_blank">Membership Portal</a>.
+                        </p>
+                        <p>Regards,<br><strong>World Tamil Siragam</strong></p>
+                    </div>
+                `
+            };
+
+            const userMailOptions = {
+                from: process.env.GMAIL_USER,
+                to: email,
+                subject: 'Membership registration request is awaiting admin approval.',
+                html: `
+                    <div style="font-family: Arial, sans-serif; line-height: 1.5em; color: #333;">
+                        <p>Dear User,</p>
+                        <p>Thank you for your interest in World Tamil Siragam. Your membership registration request has been received. 
+                        Please wait for admin approval.</p>
+                        <p>Please visit our website and contact one of our administrators for any questions.</p>
+                        <p>Regards,<br><strong>World Tamil Siragam</strong></p>
+                        <a href="https://worldtamilsiragam.com" target="_blank">https://worldtamilsiragam.com</a>
+                    </div>
+                `
+            };
+
+            await transporter.sendMail(adminMailOptions);
+            await transporter.sendMail(userMailOptions);
+        } catch (mailError) {
+            logger.warn('Failed to send registration email notification', { error: mailError.message });
+        }
+
+        return res.status(STATUS_CODES.SUCCESS).send({
             code: STATUS_CODES.SUCCESS,
             message: ENGLISH_MESSAGE.CREATE_SUCC,
             data: newMembership,
@@ -650,9 +656,11 @@ const registerMembership = async (req, res) => {
         });
 
     } catch (error) {
-        await transaction.rollback(); // Rollback transaction on error
+        if (transaction && !transaction.finished) {
+            await transaction.rollback();
+        }
         logger.error('Registration failed', { error: error.message });
-        res.status(STATUS_CODES.SERVER_ERROR).send({
+        return res.status(STATUS_CODES.SERVER_ERROR).send({
             code: STATUS_CODES.SERVER_ERROR,
             message: ENGLISH_MESSAGE.CREATE_FAIL,
             status: "error"
